@@ -12,6 +12,8 @@ add_library(sodium-qt STATIC
     sqlineedit.h
     sqlistview.cpp
     sqlistview.h
+    sqpushbutton.cpp
+    sqpushbutton.h
     sqtimer.cpp
     sqtimer.h
     sqtools.cpp
