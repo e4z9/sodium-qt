@@ -3,10 +3,19 @@
 #include "sqwidgetbase.h"
 
 #include <QString>
+#include <QTextEdit>
 #include <QThread>
 #include <QTimer>
 
 #include <sodium/sodium.h>
+
+class SQTextEditBase : public QTextEdit
+{
+public:
+    explicit SQTextEditBase(QWidget *parent = nullptr);
+    void setText(const QString &text);
+    QString text() const;
+};
 
 template<class Base>
 class SQEditBase : public SQWidgetBase<Base>
@@ -15,6 +24,7 @@ public:
     explicit SQEditBase(QWidget *parent = nullptr);
     virtual ~SQEditBase() {}
 
+    void setText(const QString &initialText);
     void setText(const sodium::stream<QString> &sText, const QString &initialText = {});
     const sodium::cell<QString> &text() const;
 
@@ -31,7 +41,12 @@ template<class Base>
 SQEditBase<Base>::SQEditBase(QWidget *parent)
     : SQWidgetBase<Base>(parent)
     , m_text({}, this, [this](const QString &v) { setTextInternal(v); })
+{}
+
+template<class Base>
+void SQEditBase<Base>::setText(const QString &initialText)
 {
+    setText(sodium::stream<QString>(), initialText);
 }
 
 template<class Base>
