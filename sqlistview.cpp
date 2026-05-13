@@ -43,6 +43,19 @@ void SQListView::setModel(QAbstractItemModel *m)
                 &QAbstractItemModel::rowsInserted,
                 this,
                 &SQListView::updateCountAndCurrent);
+        connect(model(),
+                &QAbstractItemModel::dataChanged,
+                this,
+                [this](const QModelIndex &topLeft, const QModelIndex &bottomRight) {
+                    const QModelIndex currentIdx = QAbstractItemView::currentIndex();
+                    if (topLeft.isValid() && currentIdx.isValid()
+                        && topLeft.parent() == currentIdx.parent()
+                        && topLeft.row() <= currentIdx.row()
+                        && currentIdx.row() <= bottomRight.row()) {
+                        // trigger sending updated data
+                        m_sUserCurrentIndex.send(boost::make_optional(currentIdx.row()));
+                    }
+                });
     }
     updateCountAndCurrent();
 }
