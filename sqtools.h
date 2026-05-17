@@ -140,14 +140,16 @@ private:
  */
 using Unsubscribe = std::unordered_map<std::string, UnsubscribeFunction>;
 
-template<typename A>
-sodium::stream<A> calm(const sodium::stream<A> &s, const sodium::lazy<boost::optional<A>> &optInit)
+template<typename A, typename C>
+sodium::stream<A> calm(const sodium::stream<A> &s,
+                       const sodium::lazy<boost::optional<A>> &optInit,
+                       const C &equals)
 {
     return sodium::filter_optional(
         s.collect_lazy(optInit,
-                       [](const A &a, const boost::optional<A> &optLastA)
+                       [equals](const A &a, const boost::optional<A> &optLastA)
                            -> std::tuple<boost::optional<A>, boost::optional<A>> {
-                           if (optLastA && *optLastA == a)
+                           if (optLastA && equals(*optLastA, a))
                                return {{}, optLastA};
                            return {{a}, {a}};
                        }));
@@ -162,7 +164,19 @@ sodium::stream<A> calm(const sodium::stream<A> &s, const sodium::lazy<boost::opt
 template<typename A>
 sodium::stream<A> calm(const sodium::stream<A> &s)
 {
-    return calm(s, {});
+    return calm(s, {}, [](const A &l, const A &r) -> bool { return l == r; });
+}
+
+/*!
+ * \brief calm suppresses updates if the sent value is the same as the last one.
+ * \param s The stream to calm.
+ * \param equals The equality operator.
+ * \return A stream with updates of same values suppressed.
+ */
+template<typename A, typename C>
+sodium::stream<A> calm(const sodium::stream<A> &s, const C &equals)
+{
+    return calm(s, {}, equals);
 }
 
 /*!
@@ -176,7 +190,22 @@ sodium::cell<A> calm(const sodium::cell<A> &a)
 {
     const auto init = a.sample_lazy();
     const auto optInit = init.map([](const A &a) -> boost::optional<A> { return a; });
-    return calm(a.updates(), optInit).hold_lazy(init);
+    return calm(a.updates(), optInit, [](const A &l, const A &r) -> bool { return l == r; })
+        .hold_lazy(init);
+}
+
+/*!
+ * \brief calm suppresses updates if the sent value is the same as the last one.
+ * \param s The cell to calm.
+ * \param equals The equality operator.
+ * \return A cell with updates of same values suppressed.
+ */
+template<typename A, typename C>
+sodium::cell<A> calm(const sodium::cell<A> &a, const C &equals)
+{
+    const auto init = a.sample_lazy();
+    const auto optInit = init.map([](const A &a) -> boost::optional<A> { return a; });
+    return calm(a.updates(), optInit, equals).hold_lazy(init);
 }
 
 /*!
